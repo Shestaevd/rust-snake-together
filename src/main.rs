@@ -30,14 +30,10 @@ async fn main() {
     let _ = input_loop(&config, log_state_il, Arc::clone(&input_state));
 
     let mut terminal: DefaultTerminal = ratatui::init();
-    let mut current_state: Box<dyn State> = Box::new(MainMenuState::new(Rc::clone(&config)));
+    let mut current_state: Box<dyn State> = Box::new(MainMenuState::new(None, Rc::clone(&config)));
 
     let frame_interval = Duration::from_millis(16);
     let mut last_tick: Instant = Instant::now();
-
-    let s = String::from("aaa");
-    let x = s;
-    println!("{x}");
 
     loop {
         tokio::time::sleep(frame_interval).await;

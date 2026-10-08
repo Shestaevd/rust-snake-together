@@ -53,8 +53,8 @@ impl StateTerminalDrawer for MainMenuState {
 }
 
 impl MainMenuState {
-    pub fn new(config: Rc<AppConfig>) -> Self {
-        let animation = Rc::new(RefCell::new(Animation::reveal()));
+    pub fn new(animation: Option<Rc<RefCell<Animation>>>, config: Rc<AppConfig>) -> Self {
+        let animation = animation.unwrap_or_else(|| Rc::new(RefCell::new(Animation::reveal())));
 
         let start = MenuItem {
             index_x: 0,

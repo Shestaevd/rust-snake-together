@@ -13,17 +13,14 @@ pub trait HasMenuBox {
     fn menu_box_mut(&mut self) -> &mut MenuBox;
 }
 
-pub fn run_navigable_state<S>(
+pub fn run_navigable_state<S: StateTerminalDrawer + HasMenuBox>(
     state: &mut S,
     delta: &u64,
     ls: &RwLock<LogState>,
     is: &RwLock<InputState>,
     terminal: &mut DefaultTerminal,
     other: Option<Box<dyn FnOnce(InputMap, &RwLock<LogState>) -> Option<Box<dyn State>>>>,
-) -> Option<Box<dyn State>>
-where
-    S: StateTerminalDrawer + HasMenuBox,
-{
+) -> Option<Box<dyn State>> {
     let pressed: Option<InputMap> = is
         .write()
         .ok()

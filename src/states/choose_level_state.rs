@@ -39,6 +39,7 @@ impl State for ChooseLevelState {
         is: &RwLock<InputState>,
         terminal: &mut DefaultTerminal,
     ) -> Option<Box<dyn State>> {
+        let animation = Rc::clone(&self.animation);
         let config = Rc::clone(&self.config);
 
         run_navigable_state(
@@ -49,7 +50,7 @@ impl State for ChooseLevelState {
             terminal,
             Some(Box::new(move |input, ls| match input {
                 InputMap::Back => {
-                    Some(Box::new(MainMenuState::new(config)) as Box<dyn State>)
+                    Some(Box::new(MainMenuState::new(Some(animation), config)) as Box<dyn State>)
                 }
                 other => {
                     if let Ok(mut lsw) = ls.write() {

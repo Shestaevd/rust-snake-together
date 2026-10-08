@@ -1,4 +1,4 @@
-use crate::config::config::AppConfig;
+use crate::config::config::{AppConfig, DifficultyLevel};
 use crate::core::input_loop::{InputMap, InputState};
 use crate::model::game_objects::Wall;
 use crate::model::level_prefab::prefab_to_walls;
@@ -74,7 +74,7 @@ impl ChooseDifficultyState {
         animation: Option<Rc<RefCell<Animation>>>,
     ) -> Self {
         let difficulty = &config.difficulty;
-        let difficulties: [(&str, u32); 3] = [
+        let difficulties: [(&str, DifficultyLevel); 3] = [
             ("Easy", difficulty.easy),
             ("Advanced", difficulty.advanced),
             ("Hard", difficulty.hard),
@@ -83,7 +83,7 @@ impl ChooseDifficultyState {
         let menu_items = difficulties
             .into_iter()
             .enumerate()
-            .map(|(i, (name, tick_ms))| {
+            .map(|(i, (name, level_difficulty))| {
                 let item_config = Rc::clone(&config);
 
                 MenuItem {
@@ -93,7 +93,7 @@ impl ChooseDifficultyState {
                     pressed: Box::new(move || {
                         let level: (Vec<Wall>, GridSize) = prefab_to_walls(level_fn())
                             .expect("built-in level prefab is valid");
-                        Box::new(GameState::new(level, tick_ms as u64, Rc::clone(&item_config)))
+                        Box::new(GameState::new(level, level_difficulty, Rc::clone(&item_config)))
                             as Box<dyn State>
                     }),
                 }

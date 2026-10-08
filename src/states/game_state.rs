@@ -1,11 +1,11 @@
-use crate::config::config::AppConfig;
+use crate::config::config::{AppConfig, DifficultyLevel};
 use crate::core::input_loop::{InputMap, InputState};
 use crate::model::game_objects::{Food, SnakeHead, SnakeTail, Wall};
 use crate::states::log_state::LogState;
 use crate::states::main_menu_state::{MainMenuState, State};
 use crate::ui::render::render_game;
 use crate::ui::ui::StateTerminalDrawer;
-use rand::Rng;
+use rand::seq::SliceRandom;
 use ratatui::DefaultTerminal;
 use std::cmp::PartialEq;
 use std::collections::HashSet;
@@ -39,6 +39,7 @@ pub struct GridSize {
 
 pub struct GameState {
     pub tick_ms: u64,
+    pub food_count: u8,
     pub current_tick_ms: u64,
     pub tick_count: u32,
     pub score: f32,
@@ -70,7 +71,7 @@ impl State for GameState {
                 InputMap::Left => Some(MoveDirection::Left),
                 InputMap::Right => Some(MoveDirection::Right),
                 InputMap::Back => {
-                    return Some(Box::new(MainMenuState::new(Rc::clone(&self.config))));
+                    return Some(Box::new(MainMenuState::new(None, Rc::clone(&self.config))));
                 }
                 input => {
                     if let Ok(mut lsw) = ls.write() {
@@ -108,7 +109,6 @@ impl State for GameState {
                 add_segment = true;
                 self.score += 1f32;
                 self.food.remove(index);
-                spawn_next_food(self);
             }
 
             move_snake_to(
@@ -124,8 +124,10 @@ impl State for GameState {
                 .any(|f| f.x == next_player_position.0 && f.y == next_player_position.1);
 
             if is_next_wall {
-                return Some(Box::new(MainMenuState::new(Rc::clone(&self.config))));
+                return Some(Box::new(MainMenuState::new(None, Rc::clone(&self.config))));
             }
+
+            fill_food(self);
         }
 
         self.draw(delta, terminal, ls);
@@ -146,7 +148,18 @@ impl StateTerminalDrawer for GameState {
     }
 }
 
-fn spawn_next_food(game_state: &mut GameState) {
+/// Tops the map up to `game_state.food_count` food items. Cells
+/// occupied by a wall, the snake or existing food are never used; cells
+/// orthogonally adjacent to the snake head are used only once every other
+/// free cell is taken. If the map runs out of free cells, it just stops
+/// short of the target.
+fn fill_food(game_state: &mut GameState) {
+    let target = game_state.food_count as usize;
+    let missing = target.saturating_sub(game_state.food.len());
+    if missing == 0 {
+        return;
+    }
+
     let mut occupied: HashSet<(u64, u64)> =
         game_state.map.iter().map(|wall| (wall.x, wall.y)).collect();
     occupied.extend(game_state.food.iter().map(|food| (food.x, food.y)));
@@ -165,38 +178,26 @@ fn spawn_next_food(game_state: &mut GameState) {
         (head.0, head.1.wrapping_sub(1)),
         (head.0, head.1 + 1),
     ]
-        .into_iter()
-        .collect();
+    .into_iter()
+    .collect();
 
-    let mut free_cells: Vec<(u64, u64)> = Vec::new();
-    for x in 0..game_state.grid_size.width {
-        for y in 0..game_state.grid_size.height {
-            if !occupied.contains(&(x, y)) {
-                free_cells.push((x, y));
-            }
-        }
-    }
+    let (mut near_head, mut preferred): (Vec<(u64, u64)>, Vec<(u64, u64)>) = (0
+        ..game_state.grid_size.width)
+        .flat_map(|x| (0..game_state.grid_size.height).map(move |y| (x, y)))
+        .filter(|pos| !occupied.contains(pos))
+        .partition(|pos| adjacent_to_head.contains(pos));
 
-    if free_cells.is_empty() {
-        return;
-    }
+    let mut rng = rand::thread_rng();
+    preferred.shuffle(&mut rng);
+    near_head.shuffle(&mut rng);
 
-    let preferred: Vec<(u64, u64)> = free_cells
-        .iter()
-        .copied()
-        .filter(|pos| !adjacent_to_head.contains(pos))
-        .collect();
-
-    let candidates = if preferred.is_empty() {
-        &free_cells
-    } else {
-        &preferred
-    };
-
-    let index = rand::thread_rng().gen_range(0..candidates.len());
-    let (x, y) = candidates[index];
-
-    game_state.food.push(Food { x, y });
+    game_state.food.extend(
+        preferred
+            .into_iter()
+            .chain(near_head)
+            .take(missing)
+            .map(|(x, y)| Food { x, y }),
+    );
 }
 
 fn next_cord(x: u64, y: u64, direction: &MoveDirection) -> (u64, u64) {
@@ -231,11 +232,16 @@ fn move_snake_to(x: u64, y: u64, snake: &mut SnakeHead, add_segment: bool) {
 }
 
 impl GameState {
-    pub fn new(level: (Vec<Wall>, GridSize), tick_ms: u64, config: Rc<AppConfig>) -> Self {
+    pub fn new(
+        level: (Vec<Wall>, GridSize),
+        difficulty: DifficultyLevel,
+        config: Rc<AppConfig>,
+    ) -> Self {
         let (map, grid_size) = level;
 
-        GameState {
-            tick_ms,
+        let mut game_state = GameState {
+            tick_ms: difficulty.tick_ms as u64,
+            food_count: difficulty.food_count,
             current_tick_ms: 0,
             tick_count: 0,
             score: 0f32,
@@ -258,9 +264,12 @@ impl GameState {
             },
             grid_size,
             map,
-            food: vec![Food { x: 5, y: 1 }],
+            food: Vec::new(),
             move_direction: MoveDirection::Right,
             config,
-        }
+        };
+
+        fill_food(&mut game_state);
+        game_state
     }
 }

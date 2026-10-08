@@ -8,9 +8,6 @@ use std::path::{Path, PathBuf};
 
 #[derive(Deserialize, Serialize, Debug, PartialEq, Clone)]
 pub struct AppConfig {
-    pub game_tick_ms: u64,
-    pub food_count: u8,
-    pub score_multiplier: f32,
     pub input_config: InputMapConfig,
     #[serde(default)]
     pub terminal_min_size: TerminalMinSize,
@@ -21,9 +18,6 @@ pub struct AppConfig {
 impl Default for AppConfig {
     fn default() -> Self {
         AppConfig {
-            game_tick_ms: 1000,
-            food_count: 1,
-            score_multiplier: 10.0,
             input_config: InputMapConfig::default(),
             terminal_min_size: TerminalMinSize::default(),
             difficulty: DifficultyConfig::default(),
@@ -33,17 +27,63 @@ impl Default for AppConfig {
 
 #[derive(Deserialize, Serialize, Debug, PartialEq, Clone)]
 pub struct DifficultyConfig {
-    pub easy: u32,
-    pub advanced: u32,
-    pub hard: u32,
+    pub easy: DifficultyLevel,
+    pub advanced: DifficultyLevel,
+    pub hard: DifficultyLevel,
 }
 
 impl Default for DifficultyConfig {
     fn default() -> Self {
         DifficultyConfig {
-            easy: 1000,
-            advanced: 500,
-            hard: 200,
+            easy: DifficultyLevel::new(1000, 1),
+            advanced: DifficultyLevel::new(500, 1),
+            hard: DifficultyLevel::new(200, 1),
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, PartialEq, Clone, Copy)]
+#[serde(from = "DifficultyLevelRepr")]
+pub struct DifficultyLevel {
+    pub tick_ms: u32,
+    pub food_count: u8,
+}
+
+/// For custom difficulty in the future.
+impl DifficultyLevel {
+    pub const fn new(tick_ms: u32, food_count: u8) -> Self {
+        DifficultyLevel {
+            tick_ms,
+            food_count,
+        }
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum DifficultyLevelRepr {
+    TickMsOnly(u32),
+    Full {
+        tick_ms: u32,
+        #[serde(default = "default_food_count")]
+        food_count: u8,
+    },
+}
+
+fn default_food_count() -> u8 {
+    1
+}
+
+impl From<DifficultyLevelRepr> for DifficultyLevel {
+    fn from(repr: DifficultyLevelRepr) -> Self {
+        match repr {
+            DifficultyLevelRepr::TickMsOnly(tick_ms) => {
+                DifficultyLevel::new(tick_ms, default_food_count())
+            }
+            DifficultyLevelRepr::Full {
+                tick_ms,
+                food_count,
+            } => DifficultyLevel::new(tick_ms, food_count),
         }
     }
 }
