@@ -122,3 +122,9 @@ for the terminal UI and [`tokio`](https://tokio.rs) for the loop and input.
 - More levels, a visible score 
 - Better ui elements. Maybe will require me to get a Designer degree.
 - **Create room** when multiplayer support is finished and make the "Together" in the logo mean something 😉
+
+## Ideas/maybe later
+
+- Music support
+- Different languages support
+- Add support for music bpm act as tick_ms in game (Lets make it a rhythm game, why not)

@@ -9,17 +9,20 @@ use ratatui::DefaultTerminal;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::RwLock;
+use crate::ui::cursor_box::CursorBox;
 use crate::utils::{run_navigable_state, HasMenuBox};
 
 pub struct OptionsState {
     pub menu_box: MenuBox,
+    pub cursor_box: CursorBox,
     pub animation: Rc<RefCell<Animation>>,
     pub config: Rc<AppConfig>,
 }
 
 impl OptionsState {
     pub fn new(animation: Rc<RefCell<Animation>>, config: Rc<AppConfig>) -> OptionsState {
-        
+        let config = config.as_ref();
+
         todo!()
     }
 }
