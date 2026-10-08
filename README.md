@@ -116,7 +116,7 @@ for the terminal UI and [`tokio`](https://tokio.rs) for the loop and input.
 
 ---
 
-## Ideas / maybe later
+## Todo list
 
 - Finish **Options**
 - More levels, a visible score 
