@@ -1,0 +1,13 @@
+{
+  "game_tick_ms" : 1000,
+  "score_multiplier" : 10,
+  "food_count" : 1,
+  "input_config" : {
+    "up" : "Up",
+    "down" : "Down",
+    "left" : "Left",
+    "right" : "Right",
+    "back" : "Backspace",
+    "enter" : "Enter"
+  }
+}
